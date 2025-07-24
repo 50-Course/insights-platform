@@ -9,8 +9,13 @@ import pandas as pd
 from fastapi import UploadFile
 from fastapi.logger import logger
 
-from schemas import DataPreview, Insight, UploadResponse
 from mcp_client import generate_ai_insights
+from schemas import DataPreview, Insight, UploadResponse
+from src.exceptions import (
+    FileNotFoundException,
+    FileProcessingError,
+    InsightsNotFoundException,
+)
 from utils import generate_file_id, get_insights_path, resolve_file_path, save_file
 
 
@@ -26,7 +31,10 @@ def process_upload(file: UploadFile) -> UploadResponse:
         return UploadResponse(file_id=file_id, preview=preview_data)
     except Exception as e:
         logger.error(f"[UploadError] Failed to process upload: {e}")
-        raise
+        raise FileProcessingError(
+            "An error occurred while processing the file",
+            details={"error": str(e)},
+        ) from e
 
 
 def save_uploaded_file(file: UploadFile) -> tuple[str, str]:
@@ -72,7 +80,8 @@ def generate_insights(file_id: str, count: int = 3) -> List[Insight]:
     file_path = resolve_file_path(file_id)
 
     if not file_path:
-        raise FileNotFoundError(f"File not found for file ID: {file_id}")
+        raise FileNotFoundException(file_id)
+    # raise FileNotFoundError(f"File not found for file ID: {file_id}")
 
     ext = os.path.splitext(file_path)[1].lower()
 
@@ -158,8 +167,8 @@ def retrieve_saved_insights(file_id: str) -> List[Insight]:
         with open(path, "r") as f:
             data = json.load(f)
         return [Insight(**item) for item in data]
-    except FileNotFoundError:
-        raise FileNotFoundError(f"No saved insights for file ID: {file_id}")
+    except FileNotFoundError as e:
+        raise InsightsNotFoundException(file_id) from e
     except Exception as e:
         logger.error(f"[RetrieveError] Could not load insights: {e}")
         raise

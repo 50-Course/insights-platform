@@ -25,7 +25,6 @@ from services import (
 
 router = APIRouter()
 
-
 @router.post("/upload", response_model=UploadResponse)
 async def upload_file(file: UploadFile, request: Request):
     """

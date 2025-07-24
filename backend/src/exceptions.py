@@ -11,7 +11,7 @@ class FileNotFoundException(HTTPException):
 class InsightsNotFoundException(HTTPException):
     def __init__(self, file_id: str):
         super().__init__(
-            status_code=404, detail=f"Insights not found for file ID: {file_id}"
+            status_code=404, detail=f"Insights not found or No saved insights for file ID: {file_id}"
         )
 
 
