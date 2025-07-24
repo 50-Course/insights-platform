@@ -1,0 +1,18 @@
+# Frontend
+
+Suppose we do two screens,
+
+- upload_screen.dart
+- insights_screen.dart
+
+We would keep data in a shared state management solution like Provider or Riverpod, and we would use a service to handle the API calls.
+
+That would be in: api_service.dart
+
+Structure:
+
+lib/src/pages/
+lib/src/services/api_service.dart
+main.dart
+
+# Backend
