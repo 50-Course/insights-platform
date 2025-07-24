@@ -1,7 +1,23 @@
-class Exception(Exception):
-    """Base class for all exceptions in this module."""
+from fastapi.exceptions import HTTPException
 
-    pass
+
+class FileNotFoundException(HTTPException):
+    def __init__(self, file_id: str):
+        super().__init__(
+            status_code=404, detail=f"File not found for file ID: {file_id}"
+        )
+
+
+class InsightsNotFoundException(HTTPException):
+    def __init__(self, file_id: str):
+        super().__init__(
+            status_code=404, detail=f"Insights not found for file ID: {file_id}"
+        )
+
+
+class InvalidFileTypeException(HTTPException):
+    def __init__(self, file_type: str):
+        super().__init__(status_code=400, detail=f"Unsupported file type: {file_type}")
 
 
 class FileProcessingError(Exception):

@@ -25,6 +25,8 @@ class ProcessRequest(BaseModel):
     file_id: str = Field(description="Unique identifier for the file to be processed")
 
 
+
+
 class Insight(BaseModel):
     title: str = Field(description="Title of the insight")
     description: str = Field(description="Detailed description of the insight")
@@ -35,6 +37,10 @@ class Insight(BaseModel):
         description="Row numbers in the file that this insight refers to"
     )
 
+class ProcessResponse(BaseModel):
+    message: str
+    file_id: str
+    insights: List[Insight]
 
 class InsightResponse(BaseModel):
     file_id: str

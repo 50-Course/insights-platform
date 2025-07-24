@@ -8,25 +8,25 @@ Approach:
 - Insights endpoint, will return insights based on the processed data (file in this context).
 """
 
-from fastapi import (APIRouter, Depends, File, HTTPException, Request,
-                     UploadFile, status)
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from fastapi.background import BackgroundTasks
 from fastapi.concurrency import run_in_threadpool
 from fastapi.logger import logger
 from fastapi.responses import JSONResponse
 
-from schemas import InsightResponse, ProcessRequest
-from services import (extract_data_preview, process_upload,
-                      retrieve_saved_insights)
+from schemas import InsightResponse, ProcessRequest, ProcessResponse, UploadResponse
+from services import (
+    extract_data_preview,
+    generate_insights,
+    persist_insights,
+    process_upload,
+    retrieve_saved_insights,
+)
 
 router = APIRouter()
 
-background_tasks = BackgroundTasks()
 
-
-@router.post(
-    "/upload",
-)
+@router.post("/upload", response_model=UploadResponse)
 async def upload_file(file: UploadFile, request: Request):
     """
     Upload a file to the server.
@@ -38,18 +38,19 @@ async def upload_file(file: UploadFile, request: Request):
     logger.info(f"Received file: {file.filename}")
 
     try:
-        response = process_upload(file)
-        return JSONResponse(
-            status_code=status.HTTP_201_CREATED,
-            content=response.dict(),
-        )
+        from fastapi.concurrency import run_in_threadpool
+
+        response = await run_in_threadpool(process_upload, file)
+        return response
     except Exception as e:
         logger.error(f"Upload error: {e}")
         raise HTTPException(status_code=500, detail="File upload failed")
 
 
 @router.post(
-    "/process", status_code=status.HTTP_201_CREATED,
+    "/process",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ProcessResponse,
 )
 def process_file(payload: ProcessRequest):
     """
@@ -75,16 +76,23 @@ def process_file(payload: ProcessRequest):
         if not insights:
             raise HTTPException(status_code=404, detail="No insights generated")
 
-        save_insights(file_id, insights)
+        background_t = BackgroundTasks()
+        background_t.add_task(persist_insights, file_id, insights)
+        # persist_insights(file_id, insights)
         logger.info(f"Insights saved for file ID: {file_id}")
 
-        return JSONResponse(
-            status_code=status.HTTP_201_CREATED,
-            content={
-                "message": "Insights generated successfully",
-                "file_id": file_id,
-                "insights": [insight.dict() for insight in insights],
-            },
+        # return JSONResponse(
+        #     status_code=status.HTTP_201_CREATED,
+        #     content={
+        #         "message": "Insights generated successfully",
+        #         "file_id": file_id,
+        #         "insights": [insight.dict() for insight in insights],
+        #     },
+        # )
+        return ProcessResponse(
+            message="Insights generated successfully",
+            file_id=file_id,
+            insights=insights,
         )
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="File not found for processing")
@@ -107,10 +115,7 @@ async def get_insights(file_id: str):
 
     try:
         insights = retrieve_saved_insights(file_id)
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content=InsightResponse(file_id=file_id, insights=insights).dict(),
-        )
+        return InsightResponse(file_id=file_id, insights=insights)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Insights not found for file ID")
     except Exception as e:
