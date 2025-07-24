@@ -3,6 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
+import logging
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -23,6 +24,7 @@ print("OPENROUTER_API_KEY:", os.getenv("OPENROUTER_API_KEY"))
 
 
 app = FastAPI(title="AI-powered Insights Cloud", version="1.0.0")
+logging.basicConfig(level=logging.INFO)
 
 # cors
 app.add_middleware(

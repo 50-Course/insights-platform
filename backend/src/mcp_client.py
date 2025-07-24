@@ -1,6 +1,9 @@
+import json
 import os
+import re
 from typing import Any
 
+from fastapi.logger import logger
 from openai import OpenAI
 
 client = OpenAI(
@@ -8,7 +11,7 @@ client = OpenAI(
 )
 
 
-def generate_ai_insights(prompt: Any) -> str:
+def generate_ai_insights(prompt: Any):
     """
     Generate AI insights using the DeepSeek Chimera model via OpenRouter API.
 
@@ -23,19 +26,33 @@ def generate_ai_insights(prompt: Any) -> str:
     if isinstance(prompt, str):
         # if the prompt is already a string, we use it as is
         pass
-    # otherwise, we assume the prompt is a string
+        # otherwise, we assume the prompt is a string
     elif hasattr(prompt, "to_string"):
         # if the prompt has a to_string method (like a DataFrame), we convert it to a string
         prompt = prompt.to_string(index=False)
     else:
         raise ValueError("Prompt must be a string or a DataFrame-like object.")
 
+    full_prompt = f"""
+    Analyze the following data and return 3 insights in strict JSON format.
+
+    Each insight must contain:
+    - title (str)
+    - description (str)
+    - confidence_score (float)
+    - reference_rows (list[int])
+
+    Respond ONLY with raw JSON.
+
+    Data:
+    {prompt}
+    """
     response = client.chat.completions.create(
         model="tngtech/deepseek-r1t2-chimera:free",
         messages=[
             {
                 "role": "user",
-                "content": prompt,
+                "content": full_prompt,
             }
         ],
         extra_headers={
@@ -43,4 +60,36 @@ def generate_ai_insights(prompt: Any) -> str:
             "X-Title": "AI Insights Generator",
         },
     )
-    return response.choices[0].message.content
+    raw_response = response.choices[0].message.content
+    logger.debug(f"AI Response: \n{response}")
+
+    # now that we got back something like:
+    #
+    # blablabla
+    #
+    # ###
+    #
+    # [
+    #   {
+    #   i      jadjgakt...
+    #   }
+    #
+    # ]
+
+    # if we encounter code blockers, stript those out first
+    try:
+        # Handle code block markdown: ```json ... ```
+        match = re.search(r"```(?:json)?\s*(\[.*?\])\s*```", raw_response, re.DOTALL)
+        json_str = match.group(1) if match else raw_response.strip()
+
+        # then clean-up: strip stray characters before `[` or after `]`
+        json_str = json_str.strip()
+        json_str = re.sub(r"^[^\[]*", "", json_str)  # left trim garbage before first [
+        json_str = re.sub(r"[^\]]*$", "", json_str)  # right trim garbage after last ]
+
+        insights = json.loads(json_str)
+        return insights
+
+    except json.JSONDecodeError as e:
+        logger.error(f"[ERROR] Failed to decode JSON from LLM: {e}")
+        raise ValueError("Failed to parse AI response as JSON.")

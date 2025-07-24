@@ -14,6 +14,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.logger import logger
 from fastapi.responses import JSONResponse
 
+from exceptions import FileNotFoundException, InsightsNotFoundException
 from schemas import InsightResponse, ProcessRequest, ProcessResponse, UploadResponse
 from services import (
     extract_data_preview,
@@ -24,6 +25,7 @@ from services import (
 )
 
 router = APIRouter()
+
 
 @router.post("/upload", response_model=UploadResponse)
 async def upload_file(file: UploadFile, request: Request):
@@ -51,7 +53,7 @@ async def upload_file(file: UploadFile, request: Request):
     status_code=status.HTTP_201_CREATED,
     response_model=ProcessResponse,
 )
-def process_file(payload: ProcessRequest):
+def process_file(payload: ProcessRequest, background_tasks: BackgroundTasks):
     """
     Runs a simulation of AI insights generation based on the file ID.
 
@@ -65,6 +67,7 @@ def process_file(payload: ProcessRequest):
     # - if it does not exist, return an error response
 
     file_id = payload.file_id
+    print(f"FIlE ID: {file_id}")
 
     if not file_id:
         raise HTTPException(status_code=400, detail="File ID is required")
@@ -75,26 +78,18 @@ def process_file(payload: ProcessRequest):
         if not insights:
             raise HTTPException(status_code=404, detail="No insights generated")
 
-        background_t = BackgroundTasks()
-        background_t.add_task(persist_insights, file_id, insights)
+        background_tasks.add_task(persist_insights, file_id, insights)
         # persist_insights(file_id, insights)
-        logger.info(f"Insights saved for file ID: {file_id}")
+        logger.info(f"Generated {len(insights)} insights for file ID: {file_id}")
+        logger.info(f"Queued persistence for file ID: {file_id}")
 
-        # return JSONResponse(
-        #     status_code=status.HTTP_201_CREATED,
-        #     content={
-        #         "message": "Insights generated successfully",
-        #         "file_id": file_id,
-        #         "insights": [insight.dict() for insight in insights],
-        #     },
-        # )
         return ProcessResponse(
             message="Insights generated successfully",
             file_id=file_id,
             insights=insights,
         )
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="File not found for processing")
+        raise FileNotFoundException(file_id)
     except Exception as e:
         logger.error(f"Processing error for file {file_id}: {e}")
         raise HTTPException(status_code=500, detail="Insight processing failed")
@@ -110,13 +105,14 @@ async def get_insights(file_id: str):
     - We want to allow sorting and filtering here
     """
     if not file_id:
-        raise HTTPException(status_code=400, detail="File ID is required")
+        logger.error("")
+        raise FileNotFoundException(file_id)
 
     try:
         insights = retrieve_saved_insights(file_id)
         return InsightResponse(file_id=file_id, insights=insights)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Insights not found for file ID")
+    except InsightsNotFoundException:
+        raise
     except Exception as e:
         logger.error(f"Failed to load insights for {file_id}: {e}")
         raise HTTPException(status_code=500, detail="Could not retrieve insights")

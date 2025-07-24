@@ -9,13 +9,13 @@ import pandas as pd
 from fastapi import UploadFile
 from fastapi.logger import logger
 
-from mcp_client import generate_ai_insights
-from schemas import DataPreview, Insight, UploadResponse
-from src.exceptions import (
+from exceptions import (
     FileNotFoundException,
     FileProcessingError,
     InsightsNotFoundException,
 )
+from mcp_client import generate_ai_insights
+from schemas import DataPreview, Insight, UploadResponse
 from utils import generate_file_id, get_insights_path, resolve_file_path, save_file
 
 
@@ -81,18 +81,20 @@ def generate_insights(file_id: str, count: int = 3) -> List[Insight]:
 
     if not file_path:
         raise FileNotFoundException(file_id)
-    # raise FileNotFoundError(f"File not found for file ID: {file_id}")
 
     ext = os.path.splitext(file_path)[1].lower()
 
+    logger.info("[LOG] Attempting to parse file")
     if ext in {".csv", ".xlsx", ".xls"}:
         df = _read_dataframe(file_path, count)
+        logger.info("[LOG] Parsed an Excel or CSV file successfully.")
     elif ext in {".txt", "docx"}:
         # read the file to file buffer in-memory, and for the specified count
         # parse the count as "line count",
         # and process the insights on information on `count` lines (count - n) as insights else:
         lines = read_word_text_file(file_path, count)
         df = pd.DataFrame(lines, columns=["text"])
+        logger.info("[LOG] Converted Word Document to DataFrame")
     else:
         # we don't recognize the file type and does not provide support for image type
         raise ValueError(
@@ -100,21 +102,31 @@ def generate_insights(file_id: str, count: int = 3) -> List[Insight]:
         )
 
     # when the processing is done, we will call the OpenRouter.ai API to generate insights
+    logger.info("[LOG] Attempting to generate AI insights")
     ai_response = generate_ai_insights(df)  # make a call to OpenAI via OpenRouter.ai
+    logger.info("[LOG] Information generated successfully")
 
     # finally convert the AI response into an Insight Schema object
     # which would later be saved to the filesystem as a JSON file
     # this would be a text content, so we have to cconvert to Insight schema object
-    return [
-        Insight(
-            title=f"Insight {i + 1}: {line[:40]}...",
-            description=line.strip(),
-            confidence_score=round(random.uniform(0.7, 0.99), 2),
-            reference_rows=[random.randint(1, count)],
-        )
-        for i, line in enumerate(ai_response.split("\n")[:count])
-        if line.strip()
-    ][:3]
+
+    # the approach: 
+    # we would jK;; map the list of dicts to Insight models directly
+    insights = []
+    for i, item in enumerate(ai_response[:count]):
+        try:
+            insight = Insight(
+                title=item.get("title", f"Insight {i + 1}"),
+                description=item.get("description", ""),
+                confidence_score=item.get("confidence_score", 0.9),
+                reference_rows=item.get("reference_rows", []),
+            )
+            insights.append(insight)
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to parse insight {i}: {e}")
+            continue
+
+    return insights
 
 
 def read_word_text_file(file_path: str, count: int = 5) -> List[str]:
@@ -152,6 +164,7 @@ def persist_insights(file_id: str, insights: List[Insight]) -> None:
     try:
         with open(path, "w") as f:
             json.dump([insight.dict() for insight in insights], f)
+            logger.info(f"[LOG] Insights saved for file ID: {file_id}")
     except Exception as e:
         logger.error(f"[PersistError] Could not save insights: {e}")
         raise
