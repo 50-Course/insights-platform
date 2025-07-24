@@ -1,6 +1,6 @@
 # AI-powered Insights Platform
 
-A simple AI insights platform that allows users to upload files, extract text, and generate insights using OpenAI's GPT-3.5-turbo model.
+A simple AI insights platform that allows users to upload files, extract text, and generate insights using DeepSeek Model via Openrouter.ai.
 
 ## Features
 
@@ -21,6 +21,10 @@ However, here are some key decisions taken into consideration of this project:
 - **Text Extraction**: Utilized libraries like PyMuPDF and pdfminer.six for extracting text from PDF files, ensuring compatibility with different document types.
 
 ## Installation
+
+For local development, you can set up the project using Docker and Docker Compose. This will allow you to run both the Flutter web app and the FastAPI backend seamlessly.
+
+-
 
 Clone the repository and run:
 
