@@ -18,9 +18,38 @@ However, here are some key decisions taken into consideration of this project:
 - **Flutter Web**: Used for the frontend to provide a responsive and interactive user interface.
 - **MCP Server/Client**: The platform is connected to a MCP server via Openrouter.ai, ensuring LLM (Large Language Model) capabilities are available for generating insights.
 - **File Upload and Processing**: Implemented using FastAPI's file handling capabilities, allowing users to upload various document formats.
-- **Text Extraction**: Utilized libraries like PyMuPDF and pdfminer.six for extracting text from PDF files, ensuring compatibility with different document types.
+- **Text Extraction**: Text extraction is done via python-docx for Word Docuemnt files, and custom functions for TXT files, ensuring compatibility with different document types.
+
+> Aside: Added support for Word Docuement files (.docx) and TXT files for text extraction, to stress-test the platform's capabilities with different file formats.
 
 ## Installation
+
+> At the moment, It is highly recommended to run the project locally,
+> within each project folders (`web` and `backend`). Ensure all dependencies are installed by following the instructions below.
+>
+> cd into `web`, and run:
+>
+> ```bash
+> flutter pub get    # to install Flutter dependencies
+> flutter build web    # to build the Flutter web app
+> flutter run -d chrome    # to run the Flutter web app in Chrome
+> ```
+>
+> cd into `backend`, and run:
+>
+> ```bash
+> pip install -U pip    # to upgrade pip
+> python3 -m venv .venv
+> source .venv/bin/activate    # to activate the virtual environment
+> pip install -r requirements.txt    # to install Python dependencies
+> ```
+>
+> then still within `backend`, run:
+>
+> ```bash
+> cd src
+> uvicorn main:app --reload
+> ```
 
 For local development, you can set up the project using Docker and Docker Compose. This will allow you to run both the Flutter web app and the FastAPI backend seamlessly.
 
