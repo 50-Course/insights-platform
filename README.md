@@ -2,6 +2,20 @@
 
 A simple AI insights platform that allows users to upload files, extract text, and generate insights using DeepSeek Model via Openrouter.ai.
 
+## Gallery
+
+<img width="1050" height="716" alt="Screenshot from 2025-07-25 01-00-48" src="https://github.com/user-attachments/assets/2bbc3474-a857-4d7c-a3bf-00f62ee80ee4" />
+
+
+<img width="1050" height="716" alt="Screenshot from 2025-07-25 01-01-01" src="https://github.com/user-attachments/assets/395d8a75-eb92-4bb4-b107-a93f7d2ce072" />
+
+<img width="1050" height="716" alt="Screenshot from 2025-07-25 01-01-10" src="https://github.com/user-attachments/assets/0109c5f6-f21a-4cc9-8b8c-fe2fc59ba1db" />
+
+<img width="1045" height="732" alt="Screenshot from 2025-07-25 01-01-29" src="https://github.com/user-attachments/assets/3585c499-4fbd-4304-b8d5-0142852af796" />
+
+<img width="1045" height="732" alt="Screenshot from 2025-07-25 01-02-25" src="https://github.com/user-attachments/assets/aed7c4c5-931e-471c-9123-872be061d4c1" />
+
+
 ## Features
 
 - Document upload and text extraction
