@@ -1,5 +1,8 @@
 .PHONY: backend web
 
+install:
+	cd backend && uv sync --active
+
 dev:
 	uvicorn backend.src.main:app --reload
 

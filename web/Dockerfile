@@ -1,8 +1,9 @@
-FROM cirrusci/flutter:latest
+# FROM cirrusci/flutter:latest
+FROM ghcr.io/cirruslabs/flutter:3.32.8 AS build
 
 WORKDIR /app
 
-COPY web/ .
+COPY . .
 
 RUN flutter pub get
 RUN flutter build web
