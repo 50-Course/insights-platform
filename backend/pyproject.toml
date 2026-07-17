@@ -3,7 +3,7 @@ name = "backend"
 version = "0.1.0"
 description = "Insights AI App"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "daphne>=4.2.1",
     "dotenv>=0.9.9",
